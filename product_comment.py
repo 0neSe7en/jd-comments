@@ -1,4 +1,5 @@
 import random
+import traceback
 import time
 import redis
 from datetime import datetime
@@ -81,14 +82,9 @@ def save_to_mongo(skuid, comments, page):
             'registerTime': datetime.strptime(comment.get('userRegisterTime'), '%Y-%m-%d %H:%M:%S'),
             'levelName': comment.get('userLevelName')
         }
-        if comment['anonymousFlag'] != 0:
-            # regex = save_to_user['nickname'][0] + '.+?' + save_to_user['nickname'][-1]
+        if comment.get('anonymousFlag') == 1:
             print('Update users by regex')
             user_col.insert_one(save_to_user)
-            # user_col.update_one({
-            #     'nickname': {'$regex': regex},
-            #     'registerTime': save_to_user['registerTime']
-            # }, {'$set': save_to_user}, upsert=True)
         else:
             print('Update users by nickname directly')
             user_col.update_one({
@@ -99,8 +95,6 @@ def save_to_mongo(skuid, comments, page):
         if not exists:
             print('Insert', comment['id'])
             comment_col.insert_one(comment)
-        # print('Update comment', comment['id'])
-        # comment_col.update_one({'id': comment['id']}, {'$set': comment}, upsert=True)
 
 
 while True:
@@ -112,7 +106,9 @@ while True:
         print('Keyboard')
         r.hset('progress', sku, page)
         break
-    except:
+    except Exception as e:
+        print('Someting happen', e)
+        traceback.print_exc()
         # r.hset('progress', sku, page)
         time.sleep(180)
         continue
