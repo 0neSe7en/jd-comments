@@ -54,24 +54,25 @@ class Spider:
             url = self.host % (self.skuid, self.page)
             print('Start fetch:', url)
             comments_json = requests.get(url, headers={'User-Agent': ua})
-            print('fetch Done:', url)
+            print('Fetch Done:', url)
             if not comments_json.text:
                 if self.do_retry():
                     continue
                 else:
+                    r.hset('progress', self.skuid, self.page)
                     break
             comments = json.loads(comments_json.text)
             if len(comments['comments']):
                 self.clear_retry()
-                self.save_to_mange(comments)
+                self.save_to_mongo(comments)
                 self.page += 1
                 print('INFO: Progress Sku=%s, Comment Page=%d' % (self.skuid, self.page))
             else:
                 print('INFO: SKU=%s finished, Page=%d' % (self.skuid, self.page))
                 break
 
-    def save_to_mange(self, comments):
-        print('Save to mongo')
+    def save_to_mongo(self, comments):
+        print('Save...')
         if self.page == 0:
             summary = comments['productCommentSummary']
             save_to_summary = {
@@ -100,6 +101,7 @@ class Spider:
         for comment in comments['comments']:
             exists = comment_col.find_one({'id': comment['id']})
             if exists:
+                print('SKUID=%s Exists, Jump' % self.skuid)
                 continue
             save_to_user = {
                 'nickname': comment.get('nickname'),
@@ -115,7 +117,6 @@ class Spider:
             else:
                 user_col.update_one({'registerTime': save_to_user['registerTime']}, {'$set': save_to_user}, upsert=True)
             comment['skuid'] = self.skuid
-            print('Insert', comment['id'])
             comment_col.insert_one(comment)
 
 
