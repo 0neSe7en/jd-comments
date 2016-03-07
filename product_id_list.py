@@ -21,6 +21,7 @@ def get_max_page():
     global max_page
     ua = random.choice(ua_list)
     list_page = requests.get(page_url(1), headers={'User-Agent': ua})
+    print(list_page.text)
     max_page = int(p.search(list_page.text).group(1))
     print(max_page)
 
