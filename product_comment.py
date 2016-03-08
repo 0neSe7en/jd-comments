@@ -22,12 +22,13 @@ ua_list = [x.strip() for x in user_agents_file.readlines()]
 
 
 class Spider:
-    def __init__(self, skuid):
+    def __init__(self, skuid, page=9):
         self.skuid = skuid
         self.retry = 0
-        self.page = 0
+        self.page = page
         self.host = default['comment_host']
         self.changed = False
+        self.comment_count = product_col.find_one({'skuid': skuid})['commentCount']
 
     def do_retry(self):
         if self.retry > 3 and self.changed:
@@ -46,7 +47,7 @@ class Spider:
         self.retry = 0
         self.changed = False
 
-    def fetch_comments(self):
+    def fetch_comments(self, exhaustive=False):
         while True:
             sec = random.randint(1, 3)
             time.sleep(sec)
@@ -55,21 +56,38 @@ class Spider:
             print('Start fetch:', url)
             comments_json = requests.get(url, headers={'User-Agent': ua})
             print('Fetch Done:', url)
-            if not comments_json.text:
-                if self.do_retry():
+
+            if exhaustive:
+                if not comments_json.text:
                     continue
+                comments = json.loads(comments_json.text)
+                if len(comments['comments']):
+                    self.save_to_mongo(comments)
+                    self.page += 1
+                    print('INFO: Progress Sku=%s, Comment Page=%d' % (self.skuid, self.page))
                 else:
-                    r.hset('progress', self.skuid, self.page)
-                    break
-            comments = json.loads(comments_json.text)
-            if len(comments['comments']):
-                self.clear_retry()
-                self.save_to_mongo(comments)
-                self.page += 1
-                print('INFO: Progress Sku=%s, Comment Page=%d' % (self.skuid, self.page))
+                    count = comment_col.count({'skuid': self.skuid})
+                    print('Current Count %d, Max Count %d' % (count, self.comment_count))
+                    if count + 500 > self.comment_count:
+                        break
+                    else:
+                        continue
             else:
-                print('INFO: SKU=%s finished, Page=%d' % (self.skuid, self.page))
-                break
+                if not comments_json.text:
+                    if self.do_retry():
+                        continue
+                    else:
+                        r.hset('progress', self.skuid, self.page)
+                        break
+                comments = json.loads(comments_json.text)
+                if len(comments['comments']):
+                    self.clear_retry()
+                    self.save_to_mongo(comments)
+                    self.page += 1
+                    print('INFO: Progress Sku=%s, Comment Page=%d' % (self.skuid, self.page))
+                else:
+                    print('INFO: SKU=%s finished, Page=%d' % (self.skuid, self.page))
+                    break
 
     def save_to_mongo(self, comments):
         print('Save...')
@@ -99,7 +117,7 @@ class Spider:
                 tag_col.update_one({'tag_id': tag['tag_id']}, {'$set': tag}, upsert=True)
 
         for comment in comments['comments']:
-            exists = comment_col.find_one({'id': comment['id']})
+            exists = comment_col.find_one({'guid': comment['guid']})
             if exists:
                 print('SKUID=%s Exists, Jump' % self.skuid)
                 continue
@@ -120,18 +138,41 @@ class Spider:
             comment_col.insert_one(comment)
 
 
-while True:
-    sku = r.spop('comment_list').decode('utf-8')
-    print('SKUID:', sku)
-    spider = Spider(sku)
-    try:
-        spider.fetch_comments()
-    except KeyboardInterrupt:
-        print('Keyboard')
-        r.hset('progress', spider.skuid, spider.page)
-        break
-    except Exception as e:
-        print('Someting happen', e)
-        traceback.print_exc()
-        time.sleep(180)
-        continue
+def from_progress():
+    sku_list = r.hgetall('progress')
+    for (sku, page) in sku_list.items():
+        print('SKUID:', sku.decode('utf-8'), int(page))
+        spider = Spider(sku.decode('utf-8'), int(page))
+        try:
+            spider.fetch_comments()
+        except KeyboardInterrupt:
+            print('Keyboard')
+            r.hset('progress', spider.skuid, spider.page)
+            break
+        except Exception as e:
+            print('Someting happen', e)
+            traceback.print_exc()
+            time.sleep(180)
+            continue
+
+
+def basic():
+    while True:
+        sku = r.spop('comment_list')
+        spider = Spider(sku.decode('utf-8'))
+        print('SKUID:', sku)
+        try:
+            spider.fetch_comments()
+        except KeyboardInterrupt:
+            print('Keyboard')
+            r.hset('progress', spider.skuid, spider.page)
+            break
+        except Exception as e:
+            print('Someting happen', e)
+            traceback.print_exc()
+            time.sleep(180)
+            continue
+
+
+s = Spider('1378538')
+s.fetch_comments(exhaustive=True)
