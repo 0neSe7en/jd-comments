@@ -1,15 +1,10 @@
-import random
-import traceback
 import time
+import traceback
+
 import redis
-from bs4 import BeautifulSoup
-from datetime import datetime
-import simplejson as json
-from pymongo import MongoClient
 import requests
-
-
-from config import default
+from bs4 import BeautifulSoup
+from pymongo import MongoClient
 
 r = redis.StrictRedis()
 mongo_client = MongoClient()

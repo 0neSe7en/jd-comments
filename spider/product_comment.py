@@ -1,14 +1,15 @@
 import random
 import sys
-import traceback
 import time
-import redis
+import traceback
 from datetime import datetime
+
+import redis
+import requests
 import simplejson as json
 from pymongo import MongoClient
-import requests
 
-from config import default
+from spider.config import default
 
 r = redis.StrictRedis()
 mongo_client = MongoClient()
