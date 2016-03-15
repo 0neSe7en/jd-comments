@@ -1,0 +1,10 @@
+.td-wrap {
+    white-space: normal;
+}
+
+.float-button {
+    position: fixed;
+    right: 50px;
+    top: 100px;
+    z-index: 2;
+}

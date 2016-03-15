@@ -1,22 +1,9 @@
+const m = require('mithril');
 
-import { Router, Route, browserHistory } from 'react-router'
-import { syncHistoryWithStore } from 'react-router-redux'
-import { Provider } from 'react-redux'
-import ReactDOM from 'react-dom'
-import React from 'react'
+m.route.mode = 'hash';
+m.route(document.getElementById('mainContent'), '/train', {
+	'/train': require('./src/components/train.js'),
+	'/marked': require('./src/components/marked.js'),
+	'/show': require('./src/components/show.js')
+});
 
-import App from './containers/App'
-import configure from './store'
-
-const store = configure()
-const history = syncHistoryWithStore(browserHistory, store);
-
-ReactDOM.render(
-  <Provider store={store}>
-    <Router history={history}>
-      <Route path="/" component={App}>
-      </Route>
-    </Router>
-  </Provider>,
-  document.getElementById('root')
-);
