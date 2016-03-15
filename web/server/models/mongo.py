@@ -8,8 +8,16 @@ DEFAULT_PROJECTION = {
     'creationTime': 1,
     'userLevelName': 1,
     'usefulVoteCount': 1,
-    'uselessVoteCount': 1
+    'uselessVoteCount': 1,
+    'imageCount': 1,
+    'commentTags': 1
 }
+
+
+def mapTag(c):
+    if c.get('commentTags'):
+        c['commentTags'] = list(map(lambda t: t['name'], c['commentTags']))
+    return c
 
 
 class Mongo:
@@ -23,22 +31,35 @@ class Mongo:
         self.marked = self.db['markedComments']
 
     def sample(self):
-        return self.comment.aggregate([
+        comments = self.comment.aggregate([
             {
                 '$project': DEFAULT_PROJECTION
+            },
+            {
+                '$match': {'marked': {'$ne': True}}
             },
             {
                 '$sample': {'size': 25}
             }
         ])
 
+        return map(mapTag, comments)
+
     def save(self, marked):
         for (comment_id, value) in marked.items():
             comment = self.comment.find_one({'_id': ObjectId(comment_id)})
             comment['mark'] = 1 if value else 0
-            self.marked.insert_one(comment)
+            try:
+                self.marked.insert_one(comment)
+                self.comment.update_one({'_id': ObjectId(comment_id)}, {'$set': {'marked': True}})
+            except Exception:
+                print('Exp', Exception)
 
     def get_marked(self):
         projection = copy.copy(DEFAULT_PROJECTION)
         projection['mark'] = 1
-        return self.marked.find(projection=projection)
+        return map(mapTag, self.marked.find(projection=projection))
+
+    def delete_marked(self, mark_id):
+        self.marked.delete_one({'_id': ObjectId(mark_id)})
+        self.comment.update_one({'_id': ObjectId(mark_id)}, {'$set': {'marked': False}})

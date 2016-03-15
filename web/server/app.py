@@ -32,10 +32,17 @@ def results():
     pass
 
 
-@app.route('/marked')
+@app.route('/marked', methods=['GET'])
 @cross_origin()
 def get_marked():
     return jsonify(contents=list(map(convert_contents, db.get_marked())))
+
+
+@app.route('/marked/<mark_id>', methods=['DELETE'])
+@cross_origin()
+def delete_marked(mark_id):
+    db.delete_marked(mark_id)
+    return jsonify({'msg': 'success'})
 
 
 def convert_contents(c):
