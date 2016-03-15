@@ -6,7 +6,7 @@ module.exports = {
 		var self = this;
 		self.comments = m.prop([]);
 		self.selectData = m.prop({});
-		self.comments = commentModel.sample();
+		self.comments = m.prop([]);
 		self.dataTable = m.prop({});
 		self.selectAll = (v) => {
 			_.forEach(self.selectData(), (value) => {
@@ -59,7 +59,10 @@ module.exports = {
 						m('th', {style: {'max-width': '60px'}}, '有用评价'),
 						m('th', {style: {'max-width': '60px'}}, '无用评价'),
 						m('th.mdl-data-table__cell--non-numeric', '产品名'),
+						m('th.mdl-data-table__cell--non-numeric', '标签'),
+						m('th', {style: {'max-width': '60px'}}, '图片数量'),
 						m('th.mdl-data-table__cell--non-numeric', '评论内容'),
+						m('th', {style: {'max-width': '60px'}}, '评论长度'),
 						m('th.mdl-data-table__cell--non-numeric', 'id')
 					])),
 					m('tbody', ctrl.comments().contents.map(comment => {
@@ -77,7 +80,10 @@ module.exports = {
 							m('td', {style: {'max-width': '60px'}}, comment.usefulVoteCount),
 							m('td', {style: {'max-width': '60px'}}, comment.uselessVoteCount),
 							m('td.mdl-data-table__cell--non-numeric.td-wrap', {style: {'max-width': '200px'}}, comment.referenceName.slice(0, 20)),
+							m('td.mdl-data-table__cell--non-numeric.td-wrap', {style: {'max-width': '100px'}}, comment.commentTags ? comment.commentTags.join(', ') : ''),
+							m('td', {style: {'max-width': '60px'}}, comment.imageCount || 0),
 							m('td.mdl-data-table__cell--non-numeric.td-wrap', {style: {'max-width': '500px'}}, comment.content),
+							m('td', {style: {'max-width': '60px'}}, comment.content.length),
 							m('td.mdl-data-table__cell--non-numeric', comment._id)
 						])
 					}))
