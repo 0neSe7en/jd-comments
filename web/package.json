@@ -7,6 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "webpack-dev-server -d --history-api-fallback --hot --inline --progress --colors --port 3000",
+    "server": "cd server && python app.py",
     "build": "NODE_ENV=production webpack --progress --colors"
   },
   "license": "MIT",

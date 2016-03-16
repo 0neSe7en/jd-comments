@@ -27,8 +27,8 @@ Usage:
 ------
 
 ```
-cd web && npm i && npm start
-cd web/server && python app.py
+npm run server
+npm start
 ```
 
 
