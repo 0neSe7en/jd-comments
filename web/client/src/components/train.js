@@ -12,20 +12,27 @@ module.exports = {
 			_.forEach(self.selectData(), (value) => {
 				if (v) {
 					value.dom.check();
+					value.checked(true);
 				} else {
 					value.dom.uncheck();
+					value.checked(false);
 				}
 			});
 		};
 
-		self.save = () => {
-			commentModel.train(_.reduce(self.selectData(), (results, v, cid) => {
-				results[cid] = v.checked();
-				return results;
-			}, {})).then(function() {
-				m.redraw.strategy('all');
-				return init()
-			})
+		self.save = (v) => {
+			let savedData = {};
+			_.forEach(self.selectData(), (data, cid) => {
+				if (data.checked()) {
+					savedData[cid] = v
+				}
+			});
+			commentModel.train(savedData)
+		};
+
+		self.refresh = () => {
+			m.redraw.strategy('all');
+			init();
 		};
 
 		init();
@@ -45,7 +52,9 @@ module.exports = {
 	},
 	view(ctrl) {
 		return m('.mdl-grid', [
-			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent.float-button', {onclick: ctrl.save}, '保存'),
+			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent.float-button', {onclick: ctrl.save.bind(null, 1)}, '保存为无用'),
+			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent', {onclick: ctrl.save.bind(null, 0)}, '保存为有用'),
+			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent', {onclick: ctrl.refresh}, '刷新'),
 			m('table.mdl-data-table.mdl-js-data-table.mdl-shadow--2dp.mdl-cell--12-col', { config: newDataTable },
 				[
 					m('thead', m('tr', [
