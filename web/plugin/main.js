@@ -26,12 +26,22 @@ function addHref() {
 				dataType: 'json',
 				contentType: 'application/json;charset=utf-8'
 			}).done(function(data) {
-				console.log(data);
+				if (data && data.msg === 'success') {
+					$($('.comments-item')[i]).hide('fast');
+				}
 			})
-		}.bind(null, i));
+		}.bind(d1, i));
 		var d2 = genDom('这是有价值的评论');
 		d2.click(function(i) {
-			console.log('click on 有效评论', i)
+			$.ajax({
+				type: 'POST',
+				url: 'http://localhost:5000/plugin/marked',
+				data: JSON.stringify({url: current_comment, pos: i, type: 0}),
+				dataType: 'json',
+				contentType: 'application/json;charset=utf-8'
+			}).done(function(data) {
+				console.log(data)
+			})
 		}.bind(null, i));
 		$(doms[i]).append(d1).append(d2);
 	}
