@@ -54,7 +54,7 @@ class CommentModel:
             contents.append(marked['content'])
         if method == 'report':
             X_train, X_test, y_train, y_test, content_train, content_test = train_test_split(X, y, contents, test_size=0.33)
-            clf = svm.SVC(C=10, gamma=0.1)
+            clf = svm.SVC(C=100, gamma=0.001)
             clf.fit(X_train, y_train)
             y_pred = clf.predict(X_test)
             # for test, pred, content, feature in zip(y_test, y_pred, content_test, X_test):
@@ -65,7 +65,7 @@ class CommentModel:
                     # print('Test %d, Pred %d, Contents: %s\n' % (test, pred, content))
             print(classification_report(y_test, y_pred, target_names=['普通评论', '无效评论']))
         elif method == 'cross_validation':
-            model = svm.SVC(C=10, gamma=0.1, probability=True)
+            model = svm.SVC(C=100, gamma=0.001, probability=True)
             headers = ['#'] + ['K-Folder#' + str(i) for i in range(1, 11)] + ['avg']
             table = []
             for method in quantifying_methods:
@@ -80,7 +80,7 @@ class CommentModel:
         for c in self.cols['marked'].find():
             features.append(self.gen_feature(c, output=False))
             marked.append(c['mark'])
-        self.model = svm.SVC(C=10, gamma=0.1, probability=True)
+        self.model = svm.SVC(C=100, gamma=0.001, probability=True)
         self.model.fit(features, marked)
 
     def predict(self, comment):
@@ -108,7 +108,7 @@ class CommentModel:
         del top100['发票']
         del top100['体验']
         self.keys['top'] = top100
-        print(self.keys)
+        # print(self.keys)
 
     def _add_words(self, words, pos='nz'):
         for w in words + list(self.keys['product'].keys()):
