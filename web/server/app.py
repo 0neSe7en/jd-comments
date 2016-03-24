@@ -2,12 +2,15 @@ from flask import Flask, request, Response
 from flask import jsonify
 from flask.ext.cors import CORS, cross_origin
 from models.mongo import Mongo
+from learn.model.model import CommentModel
+from spider.product_comment import Spider
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['JSON_AS_ASCII'] = False
 db = Mongo()
+spider = Spider()
 
 
 @app.route('/')
@@ -25,6 +28,17 @@ def sample():
     elif request.method == 'POST':
         db.save(request.get_json())
         return jsonify({'msg': 'success'})
+
+
+@app.route('/plugin/marked', methods=['POST'])
+@cross_origin()
+def plugin_marked():
+    user_marked = request.get_json()
+    url = user_marked['url']
+    comment_ids = spider.fetch_single(url)
+    single_marked = {str(comment_ids[user_marked['pos']]): user_marked['type']}
+    db.save(single_marked)
+    return jsonify({'msg': 'success'})
 
 
 @app.route('/results')
@@ -51,4 +65,5 @@ def convert_contents(c):
 
 
 if __name__ == "__main__":
+    print('app start...')
     app.run(debug=True)

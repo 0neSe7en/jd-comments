@@ -8,7 +8,7 @@ from sklearn.cross_validation import train_test_split
 from sklearn.metrics import classification_report
 from tabulate import tabulate
 
-logging.basicConfig(format='%(asctime)s - %(filename)s: %(name)s - %(message)s', level=logging.ERROR)
+logging.basicConfig(format='%(asctime)s - %(filename)s: %(name)s - %(message)s', level=logging.DEBUG)
 
 unused_words = ['commentCount', 'skuid', '材质/工艺', '_id', '功\u3000率（W）', '电\u3000压', 'scoreCount', 'productId', '品牌']
 another_words = ['轻薄', '触摸屏', 'win', 'Win', 'windows', 'Windows',
@@ -57,12 +57,6 @@ class CommentModel:
             clf = svm.SVC(C=100, gamma=0.001)
             clf.fit(X_train, y_train)
             y_pred = clf.predict(X_test)
-            # for test, pred, content, feature in zip(y_test, y_pred, content_test, X_test):
-            #     tags = jieba.analyse.extract_tags(content, topK=20, allowPOS=('ns', 'n', 'nz'))
-            #     if test != pred:
-                    # print(list(tags))
-                    # print(feature)
-                    # print('Test %d, Pred %d, Contents: %s\n' % (test, pred, content))
             print(classification_report(y_test, y_pred, target_names=['普通评论', '无效评论']))
         elif method == 'cross_validation':
             model = svm.SVC(C=100, gamma=0.001, probability=True)
@@ -108,7 +102,6 @@ class CommentModel:
         del top100['发票']
         del top100['体验']
         self.keys['top'] = top100
-        # print(self.keys)
 
     def _add_words(self, words, pos='nz'):
         for w in words + list(self.keys['product'].keys()):

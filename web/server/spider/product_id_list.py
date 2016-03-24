@@ -4,7 +4,7 @@ import re
 import redis
 import requests
 
-from spider.config import default
+from web.server.spider.config import default
 
 r = redis.StrictRedis()
 p = re.compile(r'fp-text.+?<i>(\d+)</i>', re.MULTILINE | re.IGNORECASE)
