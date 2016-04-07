@@ -9,15 +9,15 @@ import requests
 import simplejson as json
 from pymongo import MongoClient
 
-from spider.config import default
+from config import default
 
 r = redis.StrictRedis()
 mongo_client = MongoClient()
 db = mongo_client.jd
-product_col = db['products']
-tag_col = db['tags']
+product_col = db['products_mobile']
+tag_col = db['tags_mobile']
 user_col = db['users']
-comment_col = db['comments']
+comment_col = db['comments_mobile']
 
 user_agents_file = open('uas.txt', mode='r')
 ua_list = [x.strip() for x in user_agents_file.readlines()]
@@ -30,8 +30,8 @@ class Spider:
         self.page = page
         self.host = default['comment_host']
         self.changed = False
-        if skuid:
-            self.comment_count = product_col.find_one({'skuid': skuid})['commentCount']
+        # if skuid:
+        #     self.comment_count = product_col.find_one({'skuid': skuid})['commentCount']
 
     def get_header(self, ua):
         return {
@@ -186,6 +186,7 @@ def from_progress():
 def basic():
     while True:
         sku = r.spop('comment_list')
+        print('SKUID... start', sku)
         spider = Spider(sku.decode('utf-8'))
         print('SKUID:', sku)
         try:
@@ -202,18 +203,19 @@ def basic():
 
 
 if __name__ == '__main__':
-    skuid_list = ['1378538', '2123282', '1664594', '1664592', '1466274',
-                  '1730595', '1946272', '1999938', '1309456', '1956794',
-                  '2024548', '1852822', '2232248', '1579645', '1331785']
-
-    print(sys.argv[1])
-    number = int(sys.argv[1])
-    print('Start...', number)
-
-    s = Spider(skuid_list[number])
-    while True:
-        try:
-            s.fetch_comments(exhaustive=True)
-        except Exception as e:
-            time.sleep(240)
-            continue
+    basic()
+    # skuid_list = ['1378538', '2123282', '1664594', '1664592', '1466274',
+    #               '1730595', '1946272', '1999938', '1309456', '1956794',
+    #               '2024548', '1852822', '2232248', '1579645', '1331785']
+    #
+    # print(sys.argv[1])
+    # number = int(sys.argv[1])
+    # print('Start...', number)
+    #
+    # s = Spider(skuid_list[number])
+    # while True:
+    #     try:
+    #         s.fetch_comments(exhaustive=True)
+    #     except Exception as e:
+    #         time.sleep(240)
+    #         continue

@@ -2,6 +2,9 @@ import sys
 from pymongo import MongoClient
 import numpy as np
 
+import jieba
+import jieba.analyse
+
 from sklearn.svm import SVC
 from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.grid_search import GridSearchCV
@@ -13,6 +16,7 @@ db = mongo_client.jd
 cols = {
     'product': db['products'],
     'comment': db['comments'],
+    'mobile_comment': db['comments_mobile'],
     'marked': db['markedComments'],
     'user': db['users'],
     'tag': db['tags']
@@ -45,6 +49,37 @@ def find_best():
     print(grid.grid_scores_)
 
 
+def generate_top():
+    from collections import defaultdict
+    import simplejson as json
+    import operator
+    from_product = defaultdict(lambda: 0)
+    results = defaultdict(lambda: 0)
+    for product in cols['product'].find().sort('_id', -1):
+        for k in product.keys():
+            from_product[k] += 1
+    product_keys = dict(from_product)
+    for w in list(product_keys.keys()):
+        jieba.add_word(w, tag='nz')
+    progress = 0
+    for comment in cols['mobile_comment'].find(projection={'content': 1}):
+        c = comment['content']
+        words = jieba.analyse.extract_tags(c, topK=20, withWeight=False, allowPOS=('ns', 'n', 'nz'))
+        for w in words:
+            results[w] += 1
+        progress += 1
+        if progress % 100 == 0:
+            print('Current Progress: ', progress)
+    sorted_x = reversed(sorted(dict(results).items(), key=operator.itemgetter(1)))
+    json.dump(
+        list(sorted_x),
+        open('sorted_mobile.json', mode='w', encoding='utf-8'),
+        ensure_ascii=False,
+        indent=2
+    )
+    # print(sorted_x)
+
+
 if __name__ == '__main__':
     method = None
     if len(sys.argv) == 1:
@@ -65,5 +100,35 @@ if __name__ == '__main__':
         train = model.CommentModel(cols)
         train.init(to_train=False)
         train.test(sys.argv[2])
+    elif method == 'lstm':
+        train = model.CommentModel(cols)
+        train.init(to_train=False)
+        train.lstm()
+    elif method == 'save':
+        train = model.CommentModel(cols)
+        train.init()
+        train.save()
+    elif method == 'mobile':
+        cols['product'] = db['products_mobile']
+        train = model.CommentModel(cols)
+        train.init(to_train=False, category='mobile')
+        train.from_redis()
+        pos = []
+        neg = []
+        for c in cols['mobile_comment'].aggregate([
+            {'$sample': {'size': 100}}
+        ]):
+            prob = train.predict(c)
+            if prob[1] > 0.6:
+                neg.append(c['content'])
+            else:
+                pos.append(c['content'])
+        print('Positive:')
+        print('\n'.join(pos))
+        print('\n\nNegitive:')
+        print('\n'.join(neg))
+    elif method == 'generate':
+        cols['product'] = db['products_mobile']
+        generate_top()
     else:
         print('wrong input.')

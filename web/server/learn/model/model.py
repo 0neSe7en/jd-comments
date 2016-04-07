@@ -1,8 +1,11 @@
+import pickle
 from collections import defaultdict
+import redis
 import simplejson as json
 import jieba
 import jieba.analyse
 import logging
+from numpy import asarray
 from sklearn import svm, cross_validation
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import classification_report
@@ -13,10 +16,11 @@ logging.basicConfig(format='%(asctime)s - %(filename)s: %(name)s - %(message)s',
 unused_words = ['commentCount', 'skuid', '材质/工艺', '_id', '功\u3000率（W）', '电\u3000压', 'scoreCount', 'productId', '品牌']
 another_words = ['轻薄', '触摸屏', 'win', 'Win', 'windows', 'Windows',
                  '英雄联盟', '硬盘', '鲁大师', '无线网络', '系统', 'USB',
-                 '更新', '卡顿', '噪声', '设备']
+                 '更新', '卡顿', '噪声', '设备', 'android', '安卓', 'Android','ios', 'iOS', 'IOS']
 black_test = [
     '长度在5-200个字之间 填写您对此商品的使用心得，例如该商品或某功能为您带来的帮助，或使用过程中遇到的问题等。最多可输入200字',
-    '机器性能如何？散热好么？配件质量如何？快把你的使用感受告诉大家吧！'
+    '机器性能如何？散热好么？配件质量如何？快把你的使用感受告诉大家吧！',
+    '屏幕大小合适么？系统用的习惯么？配件质量如何？快写下你的评价，分享给大家吧！'
 ]
 
 quantifying_methods = ['accuracy', 'f1_macro', 'log_loss', 'recall']
@@ -30,9 +34,11 @@ class CommentModel:
             'top': {},
             'product': {}
         }
+        self.category = None
         self.ready = False
 
-    def init(self, to_train=True):
+    def init(self, to_train=True, category=None):
+        self.category = category
         logging.info('start init model...')
         logging.info('start generate keys...')
         self._gen_keys()
@@ -44,36 +50,48 @@ class CommentModel:
         self.ready = True
         logging.info('have fun.')
 
-    def test(self, method='report'):
-        X = []
+    def gen_sets(self, split=False):
+        x = []
         y = []
         contents = []
         for marked in self.cols['marked'].find():
-            X.append(self.gen_feature(marked))
+            x.append(self.gen_feature(marked))
             y.append(marked['mark'])
             contents.append(marked['content'])
+        for marked in self.cols['comment'].find({'userfulVoteCount': {'$gte': 30}}):
+            x.append(self.gen_feature(marked))
+            y.append(0)
+            contents.append(marked['content'])
+        x = asarray(x)
+        y = asarray(y)
+        contents = asarray(contents)
+        if split:
+            return train_test_split(x, y, contents, test_size=0.33)
+        else:
+            return x, y, contents
+
+    def test(self, method='report'):
         if method == 'report':
-            X_train, X_test, y_train, y_test, content_train, content_test = train_test_split(X, y, contents, test_size=0.33)
+            X_train, X_test, y_train, y_test, content_train, content_test = self.gen_sets(split=True)
             clf = svm.SVC(C=100, gamma=0.001)
             clf.fit(X_train, y_train)
             y_pred = clf.predict(X_test)
             print(classification_report(y_test, y_pred, target_names=['普通评论', '无效评论']))
+            return clf
         elif method == 'cross_validation':
+            X, y, contents = self.gen_sets()
             model = svm.SVC(C=100, gamma=0.001, probability=True)
             headers = ['#'] + ['K-Folder#' + str(i) for i in range(1, 11)] + ['avg']
             table = []
             for method in quantifying_methods:
                 row = [method] + list(cross_validation.cross_val_score(model, X, y, cv=10, scoring=method))
-                row.append(sum(row[1:])/10.)
+                row.append(sum(row[1:]) / 10.)
                 table.append(row)
             print(tabulate(table, headers=headers))
+            return model
 
     def train(self):
-        features = []
-        marked = []
-        for c in self.cols['marked'].find():
-            features.append(self.gen_feature(c, output=False))
-            marked.append(c['mark'])
+        features, marked, contents = self.gen_sets()
         self.model = svm.SVC(C=100, gamma=0.001, probability=True)
         self.model.fit(features, marked)
 
@@ -81,7 +99,14 @@ class CommentModel:
         return self.model.predict_proba([self.gen_feature(comment, output=False)])[0]
 
     def save(self):
-        pass
+        r = redis.StrictRedis()
+        res = pickle.dumps(self.model)
+        r.set('trained', res)
+
+    def from_redis(self):
+        r = redis.StrictRedis()
+        rb = r.get('trained')
+        self.model = pickle.loads(rb)
 
     def _gen_keys(self):
         from_product = defaultdict(lambda: 0)
@@ -89,18 +114,20 @@ class CommentModel:
             for k in product.keys():
                 from_product[k] += 1
         for unused in unused_words:
-            del from_product[unused]
+            if from_product.get(unused):
+                del from_product[unused]
         self.keys['product'] = dict(from_product)
         for w in another_words:
             self.keys['product'][w] = 1
 
-        top100 = {a[0]: a[1] for a in json.load(open('sorted_keys.json', mode='r', encoding='utf-8'))[:200]}
-        del top100['总体']
-        del top100['帮别人']
-        del top100['京东']
-        del top100['东西']
-        del top100['发票']
-        del top100['体验']
+        del_from_top = ['总体', '帮别人', '京东', '东西', '发票', '体验']
+        if self.category == 'mobile':
+            top100 = {a[0]: a[1] for a in json.load(open('sorted_mobile.json', mode='r', encoding='utf-8'))[:200]}
+        else:
+            top100 = {a[0]: a[1] for a in json.load(open('sorted_keys.json', mode='r', encoding='utf-8'))[:200]}
+        for d in del_from_top:
+            if top100.get(d):
+                del top100[d]
         self.keys['top'] = top100
 
     def _add_words(self, words, pos='nz'):
@@ -144,4 +171,5 @@ class CommentModel:
         comment_feature.append(top_count)
         comment_feature.append(product_count)
         return comment_feature
+
 

@@ -10,7 +10,7 @@ r = redis.StrictRedis()
 mongo_client = MongoClient()
 db = mongo_client.jd
 host = 'http://item.jd.com/%s.html'
-product_col = db['products']
+product_col = db['products_mobile']
 
 
 def fetch_product(skuid):
