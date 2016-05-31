@@ -53,8 +53,8 @@ module.exports = {
 	view(ctrl) {
 		return m('.mdl-grid', [
 			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent.float-button', {onclick: ctrl.save.bind(null, 1)}, '保存为无用'),
-			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent', {onclick: ctrl.save.bind(null, 0)}, '保存为有用'),
-			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent', {onclick: ctrl.refresh}, '刷新'),
+//			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent', {onclick: ctrl.save.bind(null, 0)}, '保存为有用'),
+//			m('button.mdl-button.mdl-js-button.mdl-button--raised.mdl-js-ripple-effect.mdl-button--accent', {onclick: ctrl.refresh}, '刷新'),
 			m('table.mdl-data-table.mdl-js-data-table.mdl-shadow--2dp.mdl-cell--12-col', { config: newDataTable },
 				[
 					m('thead', m('tr', [
