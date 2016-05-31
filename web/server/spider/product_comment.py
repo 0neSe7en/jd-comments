@@ -9,7 +9,7 @@ import requests
 import simplejson as json
 from pymongo import MongoClient
 
-from config import default
+from spider.config import default
 
 r = redis.StrictRedis()
 mongo_client = MongoClient()
