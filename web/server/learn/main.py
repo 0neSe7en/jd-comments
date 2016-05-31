@@ -62,7 +62,7 @@ def generate_top():
     for w in list(product_keys.keys()):
         jieba.add_word(w, tag='nz')
     progress = 0
-    for comment in cols['mobile_comment'].find(projection={'content': 1}):
+    for comment in cols['comment'].find(projection={'content': 1}):
         c = comment['content']
         words = jieba.analyse.extract_tags(c, topK=20, withWeight=False, allowPOS=('ns', 'n', 'nz'))
         for w in words:

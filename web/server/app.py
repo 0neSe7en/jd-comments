@@ -4,13 +4,24 @@ from flask.ext.cors import CORS, cross_origin
 from models.mongo import Mongo
 from learn.model.model import CommentModel
 from spider.product_comment import Spider
+from learn.model import model
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['JSON_AS_ASCII'] = False
-db = Mongo()
 spider = Spider()
+db = Mongo()
+trained_model = model.CommentModel({
+    'product': db.product,
+    'comment': db.comment,
+    'marked': db.marked,
+    'user': db.user,
+    'tag': db.tag
+})
+trained_model.init(to_train=False)
+trained_model.from_redis()
+db.init_model(trained_model)
 
 
 @app.route('/')
@@ -39,6 +50,19 @@ def plugin_marked():
     single_marked = {str(comment_ids[user_marked['pos']]): user_marked['type']}
     db.save(single_marked)
     return jsonify({'msg': 'success'})
+
+
+@app.route('/plugin/init', methods=['POST'])
+@cross_origin()
+def plugin_init():
+    user_marked = request.get_json()
+    url = user_marked['url']
+    comment_ids = spider.fetch_single(url)
+    predict_results = [db.predict(single) for single in comment_ids]
+    return jsonify({
+        'msg': 'success',
+        'results': [1 if prob[1] > 0.6 else 0 for prob in predict_results]
+    })
 
 
 @app.route('/results')

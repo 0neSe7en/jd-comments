@@ -14,12 +14,12 @@ from spider.config import default
 r = redis.StrictRedis()
 mongo_client = MongoClient()
 db = mongo_client.jd
-product_col = db['products_mobile']
-tag_col = db['tags_mobile']
+product_col = db['products']
+tag_col = db['tags']
 user_col = db['users']
-comment_col = db['comments_mobile']
+comment_col = db['comments']
 
-user_agents_file = open('uas.txt', mode='r')
+user_agents_file = open('spider/uas.txt', mode='r')
 ua_list = [x.strip() for x in user_agents_file.readlines()]
 
 

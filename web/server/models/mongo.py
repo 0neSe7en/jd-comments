@@ -13,6 +13,8 @@ DEFAULT_PROJECTION = {
     'commentTags': 1
 }
 
+trained_model = None
+
 
 def mapTag(c):
     if c.get('commentTags'):
@@ -29,6 +31,10 @@ class Mongo:
         self.user = self.db['users']
         self.comment = self.db['comments']
         self.marked = self.db['markedComments']
+        self.trained = None
+
+    def init_model(self, model):
+        self.trained = model
 
     def sample(self):
         comments = self.comment.aggregate([
@@ -54,6 +60,11 @@ class Mongo:
                 self.comment.update_one({'_id': ObjectId(comment_id)}, {'$set': {'marked': True}})
             except Exception:
                 print('Exp', Exception)
+
+    def predict(self, comment_id):
+        c = self.comment.find_one({'_id': ObjectId(comment_id)})
+        print(self.trained.predict(c))
+        return self.trained.predict(c)
 
     def get_marked(self):
         projection = copy.copy(DEFAULT_PROJECTION)
