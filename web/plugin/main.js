@@ -1,6 +1,6 @@
 'use strict';
 
-var re = /(http:\/\/club.jd.com\/productpage\/p-.+?.html)/;
+var re = /(http:\/\/sclub.jd.com\/productpage\/p-.+?.html)/;
 var current_comment = null;
 var already = false;
 
@@ -11,7 +11,6 @@ function genDom(text) {
 
 function addHref() {
 	var doms = document.querySelectorAll('.column.column3');
-	console.log('add...');
 	for (var i = 0; i < doms.length; i++ ) {
 		var d1 = genDom('这是无效评论');
 		d1.click(function(i) {
@@ -47,8 +46,26 @@ function addHref() {
 	}
 }
 
-if (window.location.host === 'item.jd.com') {
-	console.log('Call ');
+function getPredict() {
+	$.ajax({
+		type: 'POST',
+		url: 'http://localhost:5000/plugin/init',
+		data: JSON.stringify({
+			url: current_comment
+		}),
+		dataType: 'json',
+		contentType: 'application/json;charset=utf-8'
+	}).done(function(data) {
+		var comments = document.querySelectorAll('.comments-item');
+		for (var i = 0; i < comments.length; i++) {
+			if (data.results[i]) {
+				$(comments[i]).css('opacity', 0.5)
+			}
+		}
+	})
+}
+
+if (window.location.host === 'item.jd.com' || window.location.host === 'sclub.jd.com') {
 	document.head.addEventListener('DOMSubtreeModified', function(e) {
 		var dom = e.target;
 		$(dom).children('script').each(function(index, dom) {
@@ -57,6 +74,7 @@ if (window.location.host === 'item.jd.com') {
 				if (current_comment !== url[1]) {
 					current_comment = url[1];
 					already = false;
+					getPredict();
 				}
 				if (!already) {
 					already = true;
