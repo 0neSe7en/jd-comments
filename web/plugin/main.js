@@ -57,6 +57,9 @@ function getPredict() {
 		contentType: 'application/json;charset=utf-8'
 	}).done(function(data) {
 		var comments = document.querySelectorAll('.comments-item');
+		if (!data.results) {
+            return
+		}
 		for (var i = 0; i < comments.length; i++) {
 			if (data.results[i]) {
 				$(comments[i]).css('opacity', 0.5)

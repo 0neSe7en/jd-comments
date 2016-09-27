@@ -37,6 +37,7 @@ class Mongo:
         self.trained = model
 
     def sample(self):
+        print('start sample')
         comments = self.comment.aggregate([
             {
                 '$project': DEFAULT_PROJECTION
@@ -48,7 +49,7 @@ class Mongo:
                 '$sample': {'size': 25}
             }
         ])
-
+        print('restuls...')
         return map(mapTag, comments)
 
     def save(self, marked):
@@ -63,8 +64,10 @@ class Mongo:
 
     def predict(self, comment_id):
         c = self.comment.find_one({'_id': ObjectId(comment_id)})
-        print(self.trained.predict(c))
-        return self.trained.predict(c)
+        try:
+            return self.trained.predict(c)
+        except AttributeError:
+            return None
 
     def get_marked(self):
         projection = copy.copy(DEFAULT_PROJECTION)

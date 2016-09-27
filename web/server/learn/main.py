@@ -83,7 +83,7 @@ def generate_top():
 if __name__ == '__main__':
     method = None
     if len(sys.argv) == 1:
-        method = 'train'
+        method = None
     else:
         method = sys.argv[1]
 
@@ -100,10 +100,10 @@ if __name__ == '__main__':
         train = model.CommentModel(cols)
         train.init(to_train=False)
         train.test(sys.argv[2])
-    elif method == 'lstm':
-        train = model.CommentModel(cols)
-        train.init(to_train=False)
-        train.lstm()
+    # elif method == 'lstm':
+    #     train = model.CommentModel(cols)
+    #     train.init(to_train=False)
+    #     train.lstm()
     elif method == 'save':
         train = model.CommentModel(cols)
         train.init()
@@ -131,4 +131,12 @@ if __name__ == '__main__':
         cols['product'] = db['products_mobile']
         generate_top()
     else:
-        print('wrong input.')
+        print('''
+        Usage:
+        python main.py train       - train model and show output from marked comments.
+        python main.py best        - find best parameters for svm.
+        python main.py save        - save model to redis.
+        python main.py generate    - generate top words.
+        python main.py test report - show report results.
+        python main.py test cross_validation - show cross_validation results.
+        ''')

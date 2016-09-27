@@ -59,6 +59,10 @@ def plugin_init():
     url = user_marked['url']
     comment_ids = spider.fetch_single(url)
     predict_results = [db.predict(single) for single in comment_ids]
+    if predict_results[0] is None:
+        return jsonify({
+            'msg': 'no model'
+        })
     return jsonify({
         'msg': 'success',
         'results': [1 if prob[1] > 0.6 else 0 for prob in predict_results]

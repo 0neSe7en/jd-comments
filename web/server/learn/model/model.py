@@ -106,7 +106,10 @@ class CommentModel:
     def from_redis(self):
         r = redis.StrictRedis()
         rb = r.get('trained')
-        self.model = pickle.loads(rb)
+        if rb:
+            self.model = pickle.loads(rb)
+        else:
+            self.model = None
 
     def _gen_keys(self):
         from_product = defaultdict(lambda: 0)
